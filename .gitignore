@@ -10,14 +10,7 @@ bin/
 run_*.e
 run_*.o
 
-# results (often large, keep only summaries if needed)
-results/
-plots/*.png
-plots/*.pdf
-
 # downloaded datasets (SuiteSparse / MatrixMarket)
 mtx/
 
-# OS/editor
-.DS_Store
-.vscode/
+

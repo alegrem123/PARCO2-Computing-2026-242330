@@ -1,0 +1,21 @@
+timestamp,mode,case,np,run,time_ms,status
+# JOBID=4902509.hpc-head-n1.unitn.it TOTAL_RANKS=128 MODE=strong RUNS=5 L=200 PLIST=1-2-4-8-16-32-64-128 MATRIX=mtx/kron_g500-logn21/kron_g500-logn21.mtx
+20260102_101143,strong,kron_g500-logn21,1,1,903.655,OK
+20260102_101143,strong,kron_g500-logn21,1,2,873.546,OK
+20260102_101143,strong,kron_g500-logn21,1,3,955.983,OK
+20260102_101143,strong,kron_g500-logn21,1,4,878.328,OK
+20260102_101143,strong,kron_g500-logn21,1,5,880.968,OK
+20260102_101143,strong,kron_g500-logn21,2,1,456.113,OK
+20260102_101143,strong,kron_g500-logn21,2,2,449.769,OK
+20260102_101143,strong,kron_g500-logn21,2,3,452.369,OK
+20260102_101143,strong,kron_g500-logn21,2,4,464.659,OK
+20260102_101143,strong,kron_g500-logn21,2,5,463.145,OK
+20260102_101143,strong,kron_g500-logn21,4,1,285.724,OK
+20260102_101143,strong,kron_g500-logn21,4,2,257.810,OK
+20260102_101143,strong,kron_g500-logn21,4,3,302.157,OK
+20260102_101143,strong,kron_g500-logn21,4,4,298.068,OK
+20260102_101143,strong,kron_g500-logn21,4,5,261.390,OK
+20260102_101143,strong,kron_g500-logn21,8,1,690.510,OK
+20260102_101143,strong,kron_g500-logn21,8,2,759.792,OK
+20260102_101143,strong,kron_g500-logn21,8,3,226.687,OK
+20260102_101143,strong,kron_g500-logn21,8,4,178.220,OK
