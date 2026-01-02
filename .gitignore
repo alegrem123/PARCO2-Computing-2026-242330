@@ -13,4 +13,5 @@ run_*.o
 # downloaded datasets (SuiteSparse / MatrixMarket)
 mtx/
 
+instructions/
 
