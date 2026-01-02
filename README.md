@@ -13,8 +13,6 @@ University: University of Trento
 ![HPC](https://img.shields.io/badge/HPC-UniTN-red.svg)
 ![Reproducibility](https://img.shields.io/badge/reproducible-yes-success.svg)
 
-## Project Overview
-...
 
 ## Project Overview
 
