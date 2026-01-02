@@ -1,0 +1,9 @@
+strong scaling default: 
+qsub scripts/run_spmv.pbs
+
+strong scaling for each mtx: 
+qsub -v MATRIX=mtx/poisson3Db/poisson3Db.mtx,RUNS=10,L=5,PLIST=1,2,4,8,16,32,64,128 scripts/run_spmv.pbs
+
+weak scaling:
+qsub -v CONF=scripts/conf_weak.env scripts/run_spmv.pbs
+
