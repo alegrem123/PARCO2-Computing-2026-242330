@@ -76,8 +76,8 @@ wget https://suitesparse-collection-website.herokuapp.com/MM/DIMACS10/kron_g500-
 tar -xzf kron_g500-logn21.tar.gz
 wget https://suitesparse-collection-website.herokuapp.com/MM/LAW/webbase-1M.tar.gz
 tar -xzf webbase-1M.tar.gz
-wget https://suitesparse-collection-website.herokuapp.com/MM/GAP/GAP-web.tar.gz
-tar -xzf GAP-web.tar.gz
+wget https://suitesparse-collection-website.herokuapp.com/MM/LAW/eu-2005.tar.gz
+tar -xzf eu-2005.tar.gz
 cd ..
 qsub scripts/run_spmv.pbs
 qsub -v CONF=scripts/conf_weak.env scripts/run_spmv.pbs
@@ -105,7 +105,8 @@ The following matrices are used for strong scaling:
 - `FEM_3D_thermal2` (FEMLAB): finite-element matrix, irregular sparsity
 - `kron_g500-logn21` (DIMACS10): synthetic Kronecker graph
 - `webbase-1M` (LAW): large-scale web graph
-- `GAP-web` (GAP): highly irregular graph workload
+- `eu-2005` (LAW): real-world web graph with irregular sparsity, suitable for scalable distributed SpMV.
+
 
 Downloaded matrices are stored under `mtx/` and ignored by Git via `.gitignore`.
 
