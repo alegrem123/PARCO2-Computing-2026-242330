@@ -27,7 +27,7 @@ mpicc -O0 -g -fopenmp -std=c11 -Wall -Wextra -Wshadow -Wno-unused-parameter \
 
 # --- Defaults (override via qsub -v or CONF file) ---
 : "${MODE:=strong}"                 # strong | weak
-: "${RUNS:=5}"
+: "${RUNS:=10}"
 : "${L:=200}"
 : "${PLIST:=1,2,4,8,16,32,64,128}"
 
