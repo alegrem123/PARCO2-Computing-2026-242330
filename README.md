@@ -1,7 +1,7 @@
 # PARCO – Distributed Sparse Matrix–Vector Multiplication (SpMV)
-Author: Alessandro Gremes (ID 242330)
-Course: Parallel Computing 2025/2026
-University: University of Trento
+- Author: Alessandro Gremes (ID 242330)
+- Course: Parallel Computing 2025/2026
+- University: University of Trento
 
 # PARCO – Distributed Sparse Matrix–Vector Multiplication (SpMV)
 
