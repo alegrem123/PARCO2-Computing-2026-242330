@@ -86,6 +86,9 @@ tar -xf eu-2005.tar
 cd ..
 qsub scripts/run_spmv.pbs
 qsub -v CONF=scripts/conf_weak.env scripts/run_spmv.pbs
+cd results
+ls
+
 ```
 The provided PBS script is designed with sensible default parameters to allow immediate execution without requiring manual edits.
 However, for strong scaling experiments, it is often necessary to run multiple configurations using different matrices, repetition counts, or process lists.
