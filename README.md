@@ -3,8 +3,6 @@
 - Course: Parallel Computing 2025/2026
 - University: University of Trento
 
-# PARCO – Distributed Sparse Matrix–Vector Multiplication (SpMV)
-
 ![Language](https://img.shields.io/badge/language-C-blue.svg)
 ![Parallel](https://img.shields.io/badge/parallel-MPI-green.svg)
 ![MPI](https://img.shields.io/badge/MPI-MPICH_3.2.1-brightgreen.svg)
