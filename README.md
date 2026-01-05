@@ -39,6 +39,32 @@ The repository is organized as follows:
 ├── README.md
 └── .gitignore
 ```
+## Tasks and Objectives
+
+As required by the deliverable, this project:
+
+- implements a distributed SpMV using MPI
+- uses an explicit data distribution strategy (1D modulo-cyclic)
+- evaluates both strong and weak scaling
+- performs multiple repetitions per configuration (≥10)
+- reports maximum execution time across ranks
+- ensures full reproducibility via scripts and fixed seeds
+
+## Data Distribution Strategy
+
+Rows are distributed across MPI ranks using a 1D modulo-cyclic scheme.
+This strategy mitigates load imbalance on irregular sparse matrices by
+interleaving rows with different sparsity patterns across processes,
+at the cost of increased communication for remote vector elements.
+
+## Implementation Details
+
+- Local matrices are stored in CSR format.
+- Each MPI rank owns only its local rows.
+- Remote vector entries are exchanged at each iteration via MPI collectives.
+- A warm-up iteration is executed before timing.
+- Timings are measured using MPI_Wtime and reduced using MPI_MAX.
+
 
 ## Compilation
 
@@ -46,6 +72,10 @@ The code is written in C and uses **MPI** for parallelism.
 Compilation is performed directly on the UniTN HPC cluster using `mpicc`.
 This section describes the complete workflow to reproduce the experiments
 from scratch on the UniTN HPC cluster.
+
+In weak scaling experiments, the number of rows per MPI rank is kept constant,
+while the total problem size grows proportionally to the number of processes.
+
 
 ## 🚀 **Execution and Reproducibility**
 
@@ -56,6 +86,7 @@ The experiments are fully reproducible:
 - Multiple repetitions are executed for each configuration
 - Results are stored in timestamped CSV files
 - No manual post-processing is required during execution
+  
 
 The complete workflow, from matrix download to job submission, is documented in this README.
 ```bash
@@ -90,6 +121,7 @@ ls
 ```
 The provided PBS script is designed with sensible default parameters to allow immediate execution without requiring manual edits.
 However, for strong scaling experiments, it is often necessary to run multiple configurations using different matrices, repetition counts, or process lists.
+
 
 To support this, the script allows overriding its default parameters at submission time using environment variables passed via qsub -v as follows: 
 ```bash
@@ -153,6 +185,13 @@ Experimental results are post-processed to compute:
 - weak-scaling efficiency
 
 Plots are generated offline and stored under the `plots/` directory.
+
+## Limitations
+
+- No overlap of communication and computation is implemented.
+- The focus is on correctness and scalability, not on low-level MPI tuning.
+- Hybrid MPI+OpenMP is disabled (OMP_NUM_THREADS=1).
+
 
 
 
