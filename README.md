@@ -68,15 +68,15 @@ module load gcc91
 module load mpich-3.2.1--gcc-9.1.0
 mkdir mtx
 cd mtx
-wget https://suitesparse-collection-website.herokuapp.com/MM/Boeing/poisson3Db.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/FEMLAB/poisson3Db.tar.gz
 tar -xzf poisson3Db.tar.gz
-wget https://suitesparse-collection-website.herokuapp.com/MM/FEMLAB/FEM_3D_thermal2.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/Schmid/thermal2.tar.gz
 tar -xzf FEM_3D_thermal2.tar.gz
-wget https://suitesparse-collection-website.herokuapp.com/MM/DIMACS10/kron_g500-logn21.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/DIMACS10/kron_g500-logn21.tar.gz
 tar -xzf kron_g500-logn21.tar.gz
-wget https://suitesparse-collection-website.herokuapp.com/MM/LAW/webbase-1M.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/Williams/webbase-1M.tar.gz
 tar -xzf webbase-1M.tar.gz
-wget https://suitesparse-collection-website.herokuapp.com/MM/LAW/eu-2005.tar.gz
+https://suitesparse-collection-website.herokuapp.com/MM/LAW/eu-2005.tar.gz
 tar -xzf eu-2005.tar.gz
 cd ..
 qsub scripts/run_spmv.pbs
