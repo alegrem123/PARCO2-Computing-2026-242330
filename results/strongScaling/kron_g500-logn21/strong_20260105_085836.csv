@@ -19,3 +19,5 @@ timestamp,mode,case,np,run,time_ms,status
 20260105_085836,strong,kron_g500-logn21,2,7,570.718,OK
 20260105_085836,strong,kron_g500-logn21,2,8,583.324,OK
 20260105_085836,strong,kron_g500-logn21,2,9,551.729,OK
+20260105_085836,strong,kron_g500-logn21,2,10,562.123,OK
+20260105_085836,strong,kron_g500-logn21,4,1,354.300,OK
