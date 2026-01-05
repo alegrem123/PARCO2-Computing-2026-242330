@@ -69,15 +69,20 @@ module load mpich-3.2.1--gcc-9.1.0
 mkdir mtx
 cd mtx
 https://suitesparse-collection-website.herokuapp.com/MM/FEMLAB/poisson3Db.tar.gz
-tar -xzf poisson3Db.tar.gz
+gzip -d poisson3Db.tar.gz
+tar -xf poisson3Db.tar
 https://suitesparse-collection-website.herokuapp.com/MM/Schmid/thermal2.tar.gz
-tar -xzf FEM_3D_thermal2.tar.gz
+gzip -d thermal2.tar.gz
+tar -xf thermal2.tar
 https://suitesparse-collection-website.herokuapp.com/MM/DIMACS10/kron_g500-logn21.tar.gz
-tar -xzf kron_g500-logn21.tar.gz
+gzip -d kron_g500-logn21.tar.gz
+tar -xf kron_g500-logn21.tar
 https://suitesparse-collection-website.herokuapp.com/MM/Williams/webbase-1M.tar.gz
-tar -xzf webbase-1M.tar.gz
+gzip -d webbase-1M.tar.gz
+tar -xf webbase-1M.tar
 https://suitesparse-collection-website.herokuapp.com/MM/LAW/eu-2005.tar.gz
-tar -xzf eu-2005.tar.gz
+gzip -d eu-2005.tar.gz
+tar -xf eu-2005.tar
 cd ..
 qsub scripts/run_spmv.pbs
 qsub -v CONF=scripts/conf_weak.env scripts/run_spmv.pbs
