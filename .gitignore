@@ -13,3 +13,6 @@ run_*.o
 # downloaded datasets (SuiteSparse / MatrixMarket)
 instructions/
 
+
+# matrices are not versioned
+mtx/
