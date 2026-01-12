@@ -19,8 +19,10 @@ using **MPI** on a distributed-memory HPC system.
 
 The matrix is distributed across processes using a **1D modulo-cyclic row distribution**,
 while each process stores its local submatrix in **CSR (Compressed Sparse Row)** format.
-The SpMV operation requires communication of remote vector elements, which is explicitly
-managed through MPI collective communication.
+Remote vector entries are exchanged at each iteration using MPI collectives,
+with support for both sparse HALO exchanges (MPI_Alltoallv) and dense
+replication via MPI_Allgatherv.
+
 
 The main objectives of the project are:
 - to evaluate **strong and weak scaling behavior**,
@@ -61,7 +63,10 @@ at the cost of increased communication for remote vector elements.
 
 - Local matrices are stored in CSR format.
 - Each MPI rank owns only its local rows.
-- Remote vector entries are exchanged at each iteration via MPI collectives.
+- Remote vector entries are exchanged at each iteration using MPI collectives,
+  supporting both sparse HALO exchanges (MPI_Alltoallv) and dense replication
+  via MPI_Allgatherv.
+
 - A warm-up iteration is executed before timing.
 - Timings are measured using MPI_Wtime and reduced using MPI_MAX.
 
@@ -109,9 +114,6 @@ tar -xf kron_g500-logn21.tar
 wget https://suitesparse-collection-website.herokuapp.com/MM/Williams/webbase-1M.tar.gz
 gzip -d webbase-1M.tar.gz
 tar -xf webbase-1M.tar
-wget https://suitesparse-collection-website.herokuapp.com/MM/LAW/eu-2005.tar.gz
-gzip -d eu-2005.tar.gz
-tar -xf eu-2005.tar
 cd ..
 qsub scripts/run_spmv.pbs
 qsub -v CONF=scripts/conf_weak.env scripts/run_spmv.pbs
@@ -143,10 +145,7 @@ The following matrices are used for strong scaling:
 - `FEM_3D_thermal2` (FEMLAB): finite-element matrix, irregular sparsity
 - `kron_g500-logn21` (DIMACS10): synthetic Kronecker graph
 - `webbase-1M` (LAW): large-scale web graph
-- `eu-2005` (LAW): real-world web graph with irregular sparsity, suitable for scalable distributed SpMV.
 
-
-Downloaded matrices are stored under `mtx/` and ignored by Git via `.gitignore`.
 
 ## Experimental Setup
 
@@ -159,10 +158,12 @@ All experiments were executed on the UniTN HPC cluster using distributed-memory 
 - MPI ranks: up to 128
 - MPI implementation: MPICH 3.2.1
 - Compiler: GCC 9.1
-- Compilation flags: -O0 -g (no optimizations)
+- Compilation flags: -O3 -march=native -DNDEBUG
 - Timing routine: MPI_Wtime
 - Metric: maximum execution time across ranks
 ## Output Format
+
+Each experiment produces a CSV file with the following columns:
 
 Each experiment produces a CSV file with the following columns:
 
@@ -171,8 +172,13 @@ Each experiment produces a CSV file with the following columns:
 - `case`: matrix name or weak-scaling configuration
 - `np`: number of MPI processes
 - `run`: repetition index
-- `time_ms`: SpMV execution time in milliseconds
-- `status`: execution status (OK, MPI_FAIL, PARSE_FAIL)
+- `total_ms`: total SpMV execution time (max over ranks)
+- `comm_ms`: communication time
+- `comp_ms`: computation time
+- `gflops`: achieved performance
+- `bytes_per_iter`: estimated communication volume
+- `status`: execution status
+
 
 The reported execution time corresponds to the **maximum time across all MPI ranks**.
 
