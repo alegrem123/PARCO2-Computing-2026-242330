@@ -8,7 +8,6 @@
 
 set -euo pipefail
 
-# --- Must run under PBS ---
 if [[ -z "${PBS_NODEFILE:-}" || ! -f "${PBS_NODEFILE:-}" ]]; then
   echo "FATAL: PBS_NODEFILE not set (run inside PBS)." >&2
   exit 2
@@ -20,49 +19,104 @@ module load mpich-3.2.1--gcc-9.1.0
 
 cd "$PBS_O_WORKDIR"
 
-# --- Build (no optimizations) ---
 mkdir -p bin results
-mpicc -O0 -g -fopenmp -std=c11 -Wall -Wextra -Wshadow -Wno-unused-parameter \
+
+mpicc -O3 -march=native -DNDEBUG -fopenmp -std=c11 -Wall -Wextra -Wshadow \
   src/spmv_mpi_omp.c -o bin/spmv_mpi_omp
 
-# --- Defaults (override via qsub -v or CONF file) ---
+# ---------- Defaults ----------
 : "${MODE:=strong}"                 # strong | weak
 : "${RUNS:=10}"
-: "${L:=200}"
+: "${L:=50}"
 : "${PLIST:=1,2,4,8,16,32,64,128}"
 
-# weak generator defaults
 : "${ROWS_PER_RANK:=50000}"
 : "${NNZ_PER_ROW:=16}"
 : "${SEED:=42}"
 
-# optional config file (avoid qsub -v limits)
+# XMODE: AUTO | HALO | ALLGATHER (tracked in CSV header only, not in filenames)
+: "${XMODE:=AUTO}"
+
+# Optional config file
 : "${CONF:=}"
 if [[ -n "$CONF" ]]; then
   # shellcheck disable=SC1090
   source "$CONF"
 fi
 
-# PLIST: comma -> space (after CONF)
 PLIST="${PLIST//,/ }"
+export L
+export XMODE
 
-# MPI-only behavior
+# Clean MPI scaling (unless you are explicitly studying MPI+X)
 export OMP_NUM_THREADS=1
 export OMP_SCHEDULE=static
-export L
 
 TOTAL_RANKS=$(wc -l < "$PBS_NODEFILE")
 TS=$(date +%Y%m%d_%H%M%S)
 
-echo "JOBID=${PBS_JOBID:-NA} TOTAL_RANKS=${TOTAL_RANKS} MODE=${MODE} RUNS=${RUNS} L=${L} PLIST=[$PLIST]"
+echo "JOBID=${PBS_JOBID:-NA} TOTAL_RANKS=${TOTAL_RANKS} MODE=${MODE} RUNS=${RUNS} L=${L} XMODE=${XMODE} PLIST=[${PLIST}]"
 
-# --- Strong scaling: default matrix set (unless MATRIX is provided) ---
+parse_result_fields() {
+  awk '
+    /^RESULT /{
+      for(i=1;i<=NF;i++){
+        split($i,a,"=");
+        if(a[1]=="total_ms") total=a[2];
+        if(a[1]=="comm_ms")  comm=a[2];
+        if(a[1]=="comp_ms")  comp=a[2];
+        if(a[1]=="gflops")   gflops=a[2];
+        if(a[1]=="bytes_per_iter") bytes=a[2];
+      }
+      found=1
+    }
+    END{
+      if(!found || total=="") { print "NA,NA,NA,NA,NA"; exit 1 }
+      else { printf "%s,%s,%s,%s,%s", total,comm,comp,gflops,bytes; exit 0 }
+    }'
+}
+
+run_one_strict () {
+  local np="$1"
+  local run="$2"
+  local matrix_path="${3:-}"
+  local case_tag="$4"
+  local csv="$5"
+
+  if (( np > TOTAL_RANKS )); then
+    echo "FATAL: requested np=$np but only TOTAL_RANKS=$TOTAL_RANKS allocated" >&2
+    exit 4
+  fi
+
+  local out rc metrics
+  if [[ "$MODE" == "strong" ]]; then
+    out=$(mpiexec -np "$np" -f "$PBS_NODEFILE" ./bin/spmv_mpi_omp "$matrix_path" 2>&1); rc=$?
+  else
+    out=$(mpiexec -np "$np" -f "$PBS_NODEFILE" ./bin/spmv_mpi_omp --weak "$ROWS_PER_RANK" "$NNZ_PER_ROW" "$SEED" 2>&1); rc=$?
+  fi
+
+  if (( rc != 0 )); then
+    echo "FATAL: mpiexec failed (np=$np run=$run case=$case_tag)" >&2
+    echo "$out" | tail -n 120 >&2
+    exit 4
+  fi
+
+  # Parse must succeed, otherwise fail loud
+  if ! metrics=$(printf "%s\n" "$out" | parse_result_fields); then
+    echo "FATAL: RESULT line not found / parse failed (np=$np run=$run case=$case_tag)" >&2
+    echo "$out" | tail -n 120 >&2
+    exit 4
+  fi
+
+  echo "$TS,$MODE,$case_tag,$np,$run,$metrics,OK" >> "$csv"
+}
+
+# ---------- Matrices ----------
 MATRICES_DEFAULT=(
   mtx/poisson3Db/poisson3Db.mtx
   mtx/FEM_3D_thermal2/FEM_3D_thermal2.mtx
   mtx/kron_g500-logn21/kron_g500-logn21.mtx
   mtx/webbase-1M/webbase-1M.mtx
-  mtx/GAP-web/GAP-web.mtx
 )
 
 if [[ -n "${MATRIX:-}" ]]; then
@@ -71,70 +125,20 @@ else
   MATRICES=("${MATRICES_DEFAULT[@]}")
 fi
 
-# --- One run ---
-parse_time_ms() {
-  awk '
-    /SpMV time \(max over ranks\)/ { if ($NF=="s") t=$(NF-1); else t=$NF; found=1 }
-    END { if(!found || t=="") print "NA"; else printf "%.3f", 1000.0*t }
-  '
-}
-
-run_one () {
-  local np="$1"
-  local run="$2"
-  local matrix_path="${3:-}"
-  local case_tag="$4"
-  local csv="$5"
-  local out rc t_ms status
-
-  if (( np > TOTAL_RANKS )); then
-    echo "$TS,$MODE,$case_tag,$np,$run,NA,SKIP_NOT_ALLOCATED" >> "$csv"
-    return
-  fi
-
-  if [[ "$MODE" == "strong" ]]; then
-    out=$(mpiexec -np "$np" -f "$PBS_NODEFILE" ./bin/spmv_mpi_omp "$matrix_path" 2>&1); rc=$?
-  else
-    out=$(mpiexec -np "$np" -f "$PBS_NODEFILE" ./bin/spmv_mpi_omp --weak "$ROWS_PER_RANK" "$NNZ_PER_ROW" "$SEED" 2>&1); rc=$?
-  fi
-
-  if (( rc != 0 )); then
-    t_ms="NA"; status="MPI_FAIL"
-  else
-    t_ms=$(printf "%s\n" "$out" | parse_time_ms)
-    [[ "$t_ms" == "NA" ]] && status="PARSE_FAIL" || status="OK"
-  fi
-
-  echo "$TS,$MODE,$case_tag,$np,$run,$t_ms,$status" >> "$csv"
-}
-
-# --- Weak scaling: single CSV ---
+# ---------- WEAK ----------
 if [[ "$MODE" == "weak" ]]; then
   CASE_TAG="rows${ROWS_PER_RANK}_nnz${NNZ_PER_ROW}_seed${SEED}"
   OUTDIR="results/weakScaling/${CASE_TAG}"
   CSV="${OUTDIR}/weak_${TS}.csv"
   mkdir -p "$OUTDIR"
 
-  echo "timestamp,mode,case,np,run,time_ms,status" > "$CSV"
-  echo "# JOBID=${PBS_JOBID:-NA} TOTAL_RANKS=${TOTAL_RANKS} MODE=$MODE RUNS=$RUNS L=$L PLIST=${PLIST// /-} ROWS_PER_RANK=$ROWS_PER_RANK NNZ_PER_ROW=$NNZ_PER_ROW SEED=$SEED" >> "$CSV"
+  echo "timestamp,mode,case,np,run,total_ms,comm_ms,comp_ms,gflops,bytes_per_iter,status" > "$CSV"
+  echo "# JOBID=${PBS_JOBID:-NA} TOTAL_RANKS=${TOTAL_RANKS} MODE=$MODE RUNS=$RUNS L=$L PLIST=${PLIST// /-} ROWS_PER_RANK=$ROWS_PER_RANK NNZ_PER_ROW=$NNZ_PER_ROW SEED=$SEED XMODE=$XMODE" >> "$CSV"
 
-  SANITY_NP=4
-  (( TOTAL_RANKS < SANITY_NP )) && SANITY_NP=$TOTAL_RANKS
-
-  SANITY_OUT=$(mpiexec -np "$SANITY_NP" -f "$PBS_NODEFILE" ./bin/spmv_mpi_omp --weak "$ROWS_PER_RANK" "$NNZ_PER_ROW" "$SEED" 2>&1) || {
-    echo "FATAL: sanity mpiexec failed (weak)." >&2
-    echo "$SANITY_OUT" | head -n 80 >&2
-    exit 2
-  }
-  echo "$SANITY_OUT" | grep -q "SpMV time (max over ranks)" || {
-    echo "FATAL: timing line not found in sanity output (weak)." >&2
-    echo "$SANITY_OUT" | head -n 80 >&2
-    exit 2
-  }
-
+  echo "Running WEAK case=$CASE_TAG"
   for np in $PLIST; do
     for r in $(seq 1 "$RUNS"); do
-      run_one "$np" "$r" "" "$CASE_TAG" "$CSV"
+      run_one_strict "$np" "$r" "" "$CASE_TAG" "$CSV"
     done
   done
 
@@ -142,38 +146,41 @@ if [[ "$MODE" == "weak" ]]; then
   exit 0
 fi
 
-# --- Strong scaling: one CSV per matrix ---
+# ---------- STRONG (one CSV per matrix) ----------
 for MAT in "${MATRICES[@]}"; do
   if [[ ! -f "$MAT" ]]; then
-    echo "WARN: missing matrix, skipping: $MAT" >&2
-    continue
+    echo "FATAL: missing matrix file: $MAT" >&2
+    exit 2
   fi
 
-  CASE_TAG=$(basename "$MAT" .mtx)
+  CASE_TAG="$(basename "$MAT" .mtx)"   # <<< COME PRIMA, niente xmode nel nome
   OUTDIR="results/strongScaling/${CASE_TAG}"
   CSV="${OUTDIR}/strong_${TS}.csv"
   mkdir -p "$OUTDIR"
 
-  echo "timestamp,mode,case,np,run,time_ms,status" > "$CSV"
-  echo "# JOBID=${PBS_JOBID:-NA} TOTAL_RANKS=${TOTAL_RANKS} MODE=$MODE RUNS=$RUNS L=$L PLIST=${PLIST// /-} MATRIX=$MAT" >> "$CSV"
+  echo "timestamp,mode,case,np,run,total_ms,comm_ms,comp_ms,gflops,bytes_per_iter,status" > "$CSV"
+  echo "# JOBID=${PBS_JOBID:-NA} TOTAL_RANKS=${TOTAL_RANKS} MODE=$MODE RUNS=$RUNS L=$L PLIST=${PLIST// /-} MATRIX=$MAT XMODE=$XMODE" >> "$CSV"
 
+  echo "Running STRONG matrix=$MAT case=$CASE_TAG"
+
+  # Sanity (must succeed)
   SANITY_NP=4
   (( TOTAL_RANKS < SANITY_NP )) && SANITY_NP=$TOTAL_RANKS
 
   SANITY_OUT=$(mpiexec -np "$SANITY_NP" -f "$PBS_NODEFILE" ./bin/spmv_mpi_omp "$MAT" 2>&1) || {
-    echo "WARN: sanity failed, skipping matrix: $MAT" >&2
-    echo "$TS,$MODE,$CASE_TAG,NA,NA,NA,SANITY_MPI_FAIL" >> "$CSV"
-    continue
+    echo "FATAL: sanity mpiexec failed for matrix=$MAT" >&2
+    echo "$SANITY_OUT" | tail -n 120 >&2
+    exit 3
   }
-  echo "$SANITY_OUT" | grep -q "SpMV time (max over ranks)" || {
-    echo "WARN: sanity parse failed, skipping matrix: $MAT" >&2
-    echo "$TS,$MODE,$CASE_TAG,NA,NA,NA,SANITY_PARSE_FAIL" >> "$CSV"
-    continue
+  echo "$SANITY_OUT" | grep -q "^RESULT " || {
+    echo "FATAL: sanity did not print RESULT for matrix=$MAT" >&2
+    echo "$SANITY_OUT" | tail -n 120 >&2
+    exit 3
   }
 
   for np in $PLIST; do
     for r in $(seq 1 "$RUNS"); do
-      run_one "$np" "$r" "$MAT" "$CASE_TAG" "$CSV"
+      run_one_strict "$np" "$r" "$MAT" "$CASE_TAG" "$CSV"
     done
   done
 
