@@ -33,13 +33,30 @@ The main objectives of the project are:
 The repository is organized as follows:
 ```text
 .
-├── src/            # C source code (MPI-based SpMV implementation)
-├── scripts/        # PBS job scripts and configuration files
-├── results/        # Experimental results (CSV files)
-├── plots/          # Generated plots (speedup, efficiency, scaling)
-├── mtx/            # Sparse matrices (SuiteSparse / Matrix Market)
+├── src/
+│   └── spmv_mpi_omp.c              # MPI SpMV implementation (CSR, HALO/ALLGATHER)
+├── scripts/
+│   ├── run_spmv.pbs                # PBS runner (strong+weak, CSV logging)
+│   └── conf_weak.env               # Weak-scaling configuration (rows/rank, nnz/row, seed, etc.)
+├── results/
+│   ├── strongScaling/
+│   │   ├── poisson3Db/             # strong_*.csv
+│   │   ├── FEM_3D_thermal2/        # strong_*.csv
+│   │   ├── kron_g500-logn21/       # strong_*.csv
+│   │   └── webbase-1M/             # strong_*.csv
+│   └── weakScaling/
+│       └── rows50000_nnz16_seed42/ # weak_*.csv
+├── plots/
+│   ├── strongPlots/                # generated strong-scaling plots
+│   └── weakPlots/                  # generated weak-scaling plots
+├── report/                         # report sources / notes (deliverable write-up)
+├── mtx/
+│   └── githolder.txt               # placeholder; real matrices downloaded locally (ignored by git)
+├── bin/
+│   └── spmv_mpi_omp                # compiled binary (generated)
 ├── README.md
 └── .gitignore
+
 ```
 ## Tasks and Objectives
 
