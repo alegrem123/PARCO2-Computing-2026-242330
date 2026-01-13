@@ -1,33 +1,4 @@
-/* src/spmv_mpi_omp.c
- *
- * MPI + OpenMP SpMV with 1D modulo-cyclic row distribution:
- *    owner(i) = i mod P
- *
- * REQUIRED by deliverable:
- *  - Rank0 reads MatrixMarket and distributes entries (baseline).
- *  - 1D modulo row partitioning.
- *  - Communication to fetch remote x_j (ghost entries) before SpMV.
- *
- * UNIVERSAL + STABLE scaling solution:
- *  - Two vector exchange strategies:
- *      (A) HALO (sparse): build ghost plan once, exchange values via MPI_Alltoallv each iter
- *      (B) ALLGATHER (dense): MPI_Allgatherv each iter to replicate full x
- *    AUTO picks the cheaper in estimated communication bytes (once).
- *
- * Strong scaling:
- *   mpirun -np P ./spmv_mpi_omp matrix.mtx
- *
- * Weak scaling (synthetic):
- *   mpirun -np P ./spmv_mpi_omp --weak rows_per_rank nnz_per_row [seed]
- *
- * Env:
- *   L          = timed iterations (default 1)
- *   XMODE      = AUTO | HALO | ALLGATHER   (default AUTO)
- *   OMP_NUM_THREADS (usual)
- *
- * Output (rank0):
- *   RESULT total_ms=... comm_ms=... comp_ms=... gflops=... bytes_per_iter=...
- */
+
 
 #include <mpi.h>
 #include <stdio.h>
@@ -210,16 +181,7 @@ static void distribute_coo_modrows(int NNZ,
 }
 
 /* ------------------------ Weak matrix (LOCAL generation) ------------------------ */
-/* FIXED weak generator: stable communication (no all-to-all explosion).
- *
- * Old issue: choosing col = rand()%N makes each rank talk to ~all ranks (Alltoallv dense),
- * and comm_ms explodes as P grows (especially beyond 32 ranks).
- *
- * New pattern:
- *  - keep nnz_per_row constant
- *  - keep a constant set of remote neighbor ranks (ring ±1) -> constant peer-count
- *  - keep a constant mix local/remote -> constant ghost volume per rank
- */
+
 static void gen_random_coo_local(int rows_per_rank, int nnz_per_row,
                                  int M, int N,
                                  int rank, int P,
