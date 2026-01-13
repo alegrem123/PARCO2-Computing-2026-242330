@@ -182,8 +182,6 @@ All experiments were executed on the UniTN HPC cluster using distributed-memory 
 
 Each experiment produces a CSV file with the following columns:
 
-Each experiment produces a CSV file with the following columns:
-
 - `timestamp`: job execution timestamp
 - `mode`: strong or weak scaling
 - `case`: matrix name or weak-scaling configuration
