@@ -1,4 +1,4 @@
-# PARCO – Distributed Sparse Matrix–Vector Multiplication (SpMV)
+# PARCO – Distributed Sparse Matrix–Vector Multiplication with MPI: Strong and Weak Scaling Analysis and Comparison with OpenMP
 - Author: Alessandro Gremes (ID 242330)
 - Course: Parallel Computing 2025/2026
 - University: University of Trento
