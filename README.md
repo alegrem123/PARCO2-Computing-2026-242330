@@ -49,7 +49,6 @@ The repository is organized as follows:
 ├── plots/
 │   ├── strongPlots/                # generated strong-scaling plots
 │   └── weakPlots/                  # generated weak-scaling plots
-├── report/                         # report sources / notes (deliverable write-up)
 ├── mtx/
 │   └── githolder.txt               # placeholder; real matrices downloaded locally (ignored by git)
 ├── bin/
